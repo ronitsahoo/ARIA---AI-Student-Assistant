@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Outfit', sans-serif;
+}
+
+html.dark body {
+  background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #030305 60%);
+  color: #ffffff;
+}
+
+html.light body {
+  background: #f9fafb;
+  color: #111827;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  /* Fix horizontal scroll */
+}
+
+/* Premium Glassmorphism - Adaptive Dark/Light */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+}
+
+html.light .glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.glass-card {
+  @apply bg-[#111111] border border-white/5 shadow-xl transition-colors duration-300;
+}
+
+html.light .glass-card {
+  @apply bg-white border-gray-200 shadow-lg text-gray-900;
+}
+
+/* Neon Utilities */
+.neon-shadow-blue {
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+}
+
+.neon-shadow-purple {
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.15);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+/* Fix Input Autofill for Dark Mode */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1A1A1A inset !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Fix Input Autofill for Light Mode */
+html.light input:-webkit-autofill,
+html.light input:-webkit-autofill:hover,
+html.light input:-webkit-autofill:focus,
+html.light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: black !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
