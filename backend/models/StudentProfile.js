@@ -13,15 +13,22 @@ const documentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const feeSchema = new mongoose.Schema({
-    amount: { type: Number, required: true },
+    totalAmount: { type: Number, required: true, default: 50000 },
+    paidAmount: { type: Number, default: 0 },
     status: {
         type: String,
-        enum: ['pending', 'paid'],
+        enum: ['pending', 'partial', 'paid'],
         default: 'pending'
     },
-    transactionId: { type: String }, // Razorpay Payment ID
-    orderId: { type: String }, // Razorpay Order ID
-    signature: { type: String }
+    transactionId: { type: String }, // Razorpay Payment ID (latest)
+    orderId: { type: String }, // Razorpay Order ID (latest)
+    signature: { type: String }, // Razorpay Signature (latest)
+    history: [{
+        amount: { type: Number, required: true },
+        date: { type: Date, default: Date.now },
+        transactionId: { type: String },
+        orderId: { type: String }
+    }]
 }, { timestamps: true });
 
 const hostelSchema = new mongoose.Schema({

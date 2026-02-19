@@ -263,9 +263,10 @@ export function DocumentUpload({ fullPage = false }) {
 
 // --- FEE PAYMENT MODULE ---
 export function FeePayment({ fullPage = false }) {
-    const { studentData, initiateFeePayment } = useData(); // NEW ACTION
+    const { studentData, initiateFeePayment } = useData();
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showTestInfo, setShowTestInfo] = useState(false);
     const styles = getModuleClasses(fullPage);
 
     const feeData = studentData?.fee || { totalAmount: 50000, paidAmount: 0, history: [] };
@@ -277,7 +278,10 @@ export function FeePayment({ fullPage = false }) {
         setLoading(true);
         try {
             await initiateFeePayment(payAmount);
-        } catch (e) { console.error(e) } finally {
+        } catch (e) { 
+            console.error(e);
+            alert('Payment failed. Please try again.');
+        } finally {
             setLoading(false);
             setAmount('');
         }
@@ -285,76 +289,214 @@ export function FeePayment({ fullPage = false }) {
 
     return (
         <Card className={styles.card}>
+            {/* Background Icon */}
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <CreditCard size={styles.iconSize} className="text-purple-500 dark:text-neon-purple" />
             </div>
 
-            <div className={`${styles.padding} flex-1 flex flex-col`}>
-                <div className="flex items-center justify-between mb-8">
-                    <h3 className={`${styles.headerSize} font-bold flex items-center gap-3 text-gray-900 dark:text-white dark:text-glow`}>
-                        <CreditCard size={styles.iconHeaderSize} className="text-purple-600 dark:text-neon-purple" /> Tuition Fee
-                    </h3>
+            <div className={`${styles.padding} flex-1 flex flex-col relative z-10`}>
+                {/* Header with Test Mode Badge */}
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <h3 className={`${styles.headerSize} font-bold flex items-center gap-3 text-gray-900 dark:text-white dark:text-glow`}>
+                            <CreditCard size={styles.iconHeaderSize} className="text-purple-600 dark:text-neon-purple" /> Tuition Fee
+                        </h3>
+                        {/* Test Mode Indicator */}
+                        <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 animate-pulse">
+                            🧪 Test Mode
+                        </span>
+                    </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isPaid ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20' : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20'}`}>
-                        {isPaid ? 'PAID' : 'PENDING'}
+                        {isPaid ? '✓ PAID' : '⏳ PENDING'}
                     </span>
                 </div>
 
-                <div className={fullPage ? "grid grid-cols-2 gap-8 mb-10" : "grid grid-cols-2 gap-4 mb-6"}>
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                        <p className="text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">Total Fee</p>
-                        <p className={`${fullPage ? 'text-4xl' : 'text-xl'} font-bold text-gray-900 dark:text-white`}>₹{feeData.totalAmount.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                        <p className="text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">Remaining</p>
-                        <p className={`${fullPage ? 'text-4xl' : 'text-xl'} font-bold ${remaining > 0 ? 'text-pink-600 dark:text-neon-pink' : 'text-green-600 dark:text-green-400'}`}>₹{remaining.toLocaleString()}</p>
-                    </div>
-                </div>
-
+                {/* Test Mode Info Banner */}
                 {!isPaid && (
-                    <div className="space-y-6 mb-8">
-                        <div className="flex gap-4">
-                            <button onClick={() => setAmount(remaining)} className="flex-1 py-2 text-sm bg-purple-50 dark:bg-neon-purple/10 border border-purple-200 dark:border-neon-purple/30 text-purple-700 dark:text-neon-purple rounded-lg hover:bg-purple-100 dark:hover:bg-neon-purple/20 transition-colors">
-                                Pay Full (₹{remaining / 1000}k)
-                            </button>
-                            <button onClick={() => setAmount(Math.ceil(remaining / 2))} className="flex-1 py-2 text-sm bg-purple-50 dark:bg-neon-purple/10 border border-purple-200 dark:border-neon-purple/30 text-purple-700 dark:text-neon-purple rounded-lg hover:bg-purple-100 dark:hover:bg-neon-purple/20 transition-colors">
-                                Pay Half (₹{Math.ceil(remaining / 2000)}k)
-                            </button>
-                        </div>
-                        <div className="flex gap-4">
-                            <Input
-                                placeholder="Enter Amount"
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className={fullPage ? "py-4 text-xl" : "py-2 text-sm"}
-                                containerClassName="flex-1"
-                            />
-                            <Button
-                                onClick={() => handlePay(amount)}
-                                isLoading={loading}
-                                disabled={!amount || amount > remaining}
-                                variant="primary"
-                                className="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-neon-purple dark:to-neon-magenta hover:from-purple-700 hover:to-pink-700 text-white"
-                                size={styles.buttonSize}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-500/10 dark:to-purple-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-2">
+                                    <span className="text-base">💳</span> Safe Test Payment Environment
+                                </p>
+                                <p className="text-xs text-blue-600 dark:text-blue-400/80">
+                                    No real money will be charged. Use test cards for demo purposes.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowTestInfo(!showTestInfo)}
+                                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline whitespace-nowrap"
                             >
-                                Pay
-                            </Button>
+                                {showTestInfo ? 'Hide' : 'Test Cards'}
+                            </button>
                         </div>
+                        
+                        {/* Test Card Details */}
+                        {showTestInfo && (
+                            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-500/30 space-y-3">
+                                <div className="bg-white dark:bg-white/5 rounded-lg p-3 border border-blue-100 dark:border-blue-500/20">
+                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">💳 Domestic Test Cards</p>
+                                    <div className="space-y-2">
+                                        <div className="space-y-1 text-xs font-mono">
+                                            <p className="text-gray-600 dark:text-gray-400 font-bold">Visa Card:</p>
+                                            <p className="text-gray-600 dark:text-gray-400">Card: <span className="text-blue-600 dark:text-blue-400 font-bold">4111 1111 1111 1111</span></p>
+                                            <p className="text-gray-600 dark:text-gray-400">Expiry: <span className="text-blue-600 dark:text-blue-400 font-bold">12/26</span> | CVV: <span className="text-blue-600 dark:text-blue-400 font-bold">123</span></p>
+                                        </div>
+                                        <div className="space-y-1 text-xs font-mono pt-2 border-t border-gray-200 dark:border-gray-600">
+                                            <p className="text-gray-600 dark:text-gray-400 font-bold">Mastercard:</p>
+                                            <p className="text-gray-600 dark:text-gray-400">Card: <span className="text-blue-600 dark:text-blue-400 font-bold">5555 5555 5555 4444</span></p>
+                                            <p className="text-gray-600 dark:text-gray-400">Expiry: <span className="text-blue-600 dark:text-blue-400 font-bold">12/26</span> | CVV: <span className="text-blue-600 dark:text-blue-400 font-bold">123</span></p>
+                                        </div>
+                                        <div className="space-y-1 text-xs font-mono pt-2 border-t border-gray-200 dark:border-gray-600">
+                                            <p className="text-gray-600 dark:text-gray-400 font-bold">Rupay Card:</p>
+                                            <p className="text-gray-600 dark:text-gray-400">Card: <span className="text-blue-600 dark:text-blue-400 font-bold">6074 8200 0000 0007</span></p>
+                                            <p className="text-gray-600 dark:text-gray-400">Expiry: <span className="text-blue-600 dark:text-blue-400 font-bold">12/26</span> | CVV: <span className="text-blue-600 dark:text-blue-400 font-bold">123</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-white/5 rounded-lg p-3 border border-blue-100 dark:border-blue-500/20">
+                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">📱 Test UPI (Easiest)</p>
+                                    <div className="space-y-1 text-xs font-mono">
+                                        <p className="text-gray-600 dark:text-gray-400">UPI ID: <span className="text-green-600 dark:text-green-400 font-bold">success@razorpay</span></p>
+                                        <p className="text-gray-500 dark:text-gray-500 text-[10px]">Enter 4-10 digit OTP for success</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
+                {/* Fee Summary Cards */}
+                <div className={fullPage ? "grid grid-cols-2 gap-8 mb-8" : "grid grid-cols-2 gap-4 mb-6"}>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-500/10 dark:to-purple-600/10 rounded-2xl p-5 border border-purple-200 dark:border-purple-500/30 shadow-sm hover:shadow-md transition-shadow">
+                        <p className="text-purple-600 dark:text-purple-400 text-xs uppercase tracking-wider font-bold mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Total Fee
+                        </p>
+                        <p className={`${fullPage ? 'text-4xl' : 'text-2xl'} font-black text-purple-900 dark:text-white`}>
+                            ₹{feeData.totalAmount.toLocaleString()}
+                        </p>
+                    </div>
+                    <div className={`bg-gradient-to-br rounded-2xl p-5 border shadow-sm hover:shadow-md transition-shadow ${
+                        remaining > 0 
+                            ? 'from-pink-50 to-pink-100 dark:from-pink-500/10 dark:to-pink-600/10 border-pink-200 dark:border-pink-500/30' 
+                            : 'from-green-50 to-green-100 dark:from-green-500/10 dark:to-green-600/10 border-green-200 dark:border-green-500/30'
+                    }`}>
+                        <p className={`text-xs uppercase tracking-wider font-bold mb-2 flex items-center gap-2 ${
+                            remaining > 0 ? 'text-pink-600 dark:text-pink-400' : 'text-green-600 dark:text-green-400'
+                        }`}>
+                            <span className={`w-2 h-2 rounded-full ${remaining > 0 ? 'bg-pink-500' : 'bg-green-500'}`}></span> 
+                            {remaining > 0 ? 'Remaining' : 'Balance'}
+                        </p>
+                        <p className={`${fullPage ? 'text-4xl' : 'text-2xl'} font-black ${
+                            remaining > 0 ? 'text-pink-900 dark:text-white' : 'text-green-900 dark:text-white'
+                        }`}>
+                            ₹{remaining.toLocaleString()}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Payment Section */}
+                {!isPaid && (
+                    <div className="space-y-5 mb-8">
+                        {/* Quick Pay Buttons */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button 
+                                onClick={() => setAmount(remaining)} 
+                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 dark:hover:from-purple-500 dark:hover:to-purple-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            >
+                                <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                <div className="relative flex flex-col items-center">
+                                    <span className="text-xs font-bold uppercase tracking-wider opacity-90">Pay Full</span>
+                                    <span className="text-lg font-black">₹{(remaining / 1000).toFixed(0)}k</span>
+                                </div>
+                            </button>
+                            <button 
+                                onClick={() => setAmount(Math.ceil(remaining / 2))} 
+                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-pink-500 to-pink-600 dark:from-pink-600 dark:to-pink-700 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 dark:hover:from-pink-500 dark:hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            >
+                                <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                <div className="relative flex flex-col items-center">
+                                    <span className="text-xs font-bold uppercase tracking-wider opacity-90">Pay Half</span>
+                                    <span className="text-lg font-black">₹{(Math.ceil(remaining / 2) / 1000).toFixed(0)}k</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* Custom Amount Input */}
+                        <div className="flex gap-3">
+                            <div className="flex-1 relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 font-bold text-lg">₹</span>
+                                <Input
+                                    placeholder="Enter custom amount"
+                                    type="number"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className={`${fullPage ? "py-4 text-xl" : "py-3 text-base"} pl-8 font-semibold bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 rounded-xl`}
+                                    containerClassName="flex-1"
+                                />
+                            </div>
+                            <Button
+                                onClick={() => handlePay(amount)}
+                                isLoading={loading}
+                                disabled={!amount || amount > remaining || amount <= 0}
+                                variant="primary"
+                                className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-neon-purple dark:via-neon-magenta dark:to-neon-purple hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-8"
+                                size={styles.buttonSize}
+                            >
+                                {loading ? '⏳ Processing...' : '💳 Pay Now'}
+                            </Button>
+                        </div>
+                        
+                        {amount > remaining && (
+                            <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 animate-pulse">
+                                <AlertCircle size={12} /> Amount exceeds remaining balance
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Payment Success Message */}
+                {isPaid && (
+                    <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 border-2 border-green-200 dark:border-green-500/30 rounded-2xl text-center">
+                        <div className="w-16 h-16 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                            <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+                        </div>
+                        <h4 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">Payment Completed! 🎉</h4>
+                        <p className="text-sm text-green-600 dark:text-green-400/80">Your tuition fee has been successfully paid.</p>
+                    </div>
+                )}
+
+                {/* Payment History */}
                 <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-500 uppercase mb-4 flex items-center gap-2"><Clock size={16} /> Payment History</h4>
-                    <div className={`space-y-3 overflow-y-auto ${fullPage ? 'max-h-[300px]' : 'max-h-[200px]'} custom-scrollbar pr-2`}>
+                    <h4 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase mb-4 flex items-center gap-2">
+                        <Clock size={16} /> Payment History
+                    </h4>
+                    <div className={`space-y-3 overflow-y-auto ${fullPage ? 'max-h-[300px]' : 'max-h-[180px]'} custom-scrollbar pr-2`}>
                         {feeData.history && feeData.history.length > 0 ? (
                             feeData.history.map((tx, idx) => (
-                                <div key={idx} className={`flex justify-between items-center ${fullPage ? 'p-4' : 'p-2'} bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5`}>
-                                    <span className="text-gray-700 dark:text-gray-300 font-medium">Paid ₹{tx.amount.toLocaleString()}</span>
-                                    <span className="text-gray-500 text-sm">{new Date(tx.date).toLocaleDateString()}</span>
+                                <div key={idx} className={`flex justify-between items-center ${fullPage ? 'p-4' : 'p-3'} bg-gradient-to-r from-gray-50 to-gray-100 dark:from-white/5 dark:to-white/10 rounded-xl border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-purple-500/30 transition-colors group`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <CheckCircle size={18} className="text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-900 dark:text-gray-100 font-bold">₹{tx.amount.toLocaleString()}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-3 py-1 rounded-full border border-green-200 dark:border-green-500/30">
+                                        SUCCESS
+                                    </span>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-sm text-gray-400 dark:text-gray-600 italic">No payments made yet.</p>
+                            <div className="text-center py-12">
+                                <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CreditCard size={24} className="text-gray-400" />
+                                </div>
+                                <p className="text-sm text-gray-400 dark:text-gray-600 font-medium">No payments made yet</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">Your payment history will appear here</p>
+                            </div>
                         )}
                     </div>
                 </div>

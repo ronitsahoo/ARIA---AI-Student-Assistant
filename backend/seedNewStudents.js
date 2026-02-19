@@ -77,8 +77,10 @@ const seedNewStudents = async () => {
                 userId: user._id,
                 documents: [],
                 fee: {
-                    amount: 50000,
-                    status: 'pending'
+                    totalAmount: 50000,
+                    paidAmount: 0,
+                    status: 'pending',
+                    history: []
                 },
                 hostel: {
                     status: 'not_applied'

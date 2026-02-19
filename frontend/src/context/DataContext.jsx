@@ -214,11 +214,12 @@ export const DataProvider = ({ children }) => {
             const { data: order } = await api.post('/payment/create-order', { amount });
 
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag',
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: "INR",
                 name: "ARIA University",
                 description: "Tuition Fee Payment",
+                image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
                 order_id: order.id,
                 handler: async function (response) {
                     try {
@@ -227,26 +228,45 @@ export const DataProvider = ({ children }) => {
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature
                         });
-                        alert("Payment Successful!");
+                        
+                        alert("🎉 Payment Successful!\n\nYour tuition fee payment has been processed successfully.\nPayment ID: " + response.razorpay_payment_id);
+                        
                         await fetchStudentData();
                     } catch (error) {
-                        alert("Payment Verification Failed");
+                        console.error("Payment verification failed:", error);
+                        alert("❌ Payment Verification Failed\n\nYour payment was received but verification failed. Please contact support with Payment ID: " + response.razorpay_payment_id);
                     }
                 },
                 prefill: {
-                    name: user?.name,
-                    email: user?.email,
+                    name: user?.name || "Student",
+                    email: user?.email || "student@aria.edu",
+                    contact: "9999999999"
                 },
-                theme: {
-                    color: "#3399cc"
+                notes: {
+                    student_id: user?._id,
+                    purpose: "Tuition Fee Payment"
+                },
+                modal: {
+                    ondismiss: function() {
+                        console.log("Payment cancelled by user");
+                    }
                 }
             };
 
             const rzp1 = new window.Razorpay(options);
+            
+            // Handle payment failure
+            rzp1.on('payment.failed', function (response) {
+                console.error("Payment failed:", response.error);
+                alert("❌ Payment Failed\n\n" + 
+                      "Reason: " + response.error.description + "\n" +
+                      "Error Code: " + response.error.code);
+            });
+            
             rzp1.open();
         } catch (error) {
             console.error("Payment init failed", error);
-            alert("Could not initiate payment");
+            alert("❌ Could not initiate payment\n\nPlease check your internet connection and try again.");
         }
     };
 
