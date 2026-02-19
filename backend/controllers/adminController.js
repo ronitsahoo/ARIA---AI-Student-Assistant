@@ -34,7 +34,60 @@ const getAnalytics = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Get all hostel applications (pending, approved, rejected)
+// @route   GET /api/admin/hostel-applications
+// @access  Private (Admin)
+const getHostelApplications = asyncHandler(async (req, res) => {
+    const profiles = await StudentProfile.find({
+        'hostel.status': { $ne: 'not_applied' }
+    }).populate('userId', 'name email branch year');
+
+    const applications = profiles.map(profile => ({
+        studentId: profile.userId._id,
+        name: profile.userId.name,
+        email: profile.userId.email,
+        branch: profile.userId.branch,
+        year: profile.userId.year,
+        hostel: profile.hostel
+    }));
+
+    res.json(applications);
+});
+
+// @desc    Approve or reject a hostel application
+// @route   PUT /api/admin/hostel-applications/:studentId
+// @access  Private (Admin)
+const approveRejectHostel = asyncHandler(async (req, res) => {
+    const { studentId } = req.params;
+    const { status, rejectionReason } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+        res.status(400);
+        throw new Error('Status must be approved or rejected');
+    }
+
+    const profile = await StudentProfile.findOne({ userId: studentId });
+
+    if (!profile) {
+        res.status(404);
+        throw new Error('Student profile not found');
+    }
+
+    profile.hostel.status = status;
+    if (status === 'rejected') {
+        profile.hostel.rejectionReason = rejectionReason || 'Application rejected by admin';
+    } else {
+        profile.hostel.rejectionReason = undefined;
+    }
+
+    await profile.save();
+    res.json({ message: `Hostel application ${status}`, hostel: profile.hostel });
+});
+
 module.exports = {
     getStudents,
-    getAnalytics
+    getAnalytics,
+    getHostelApplications,
+    approveRejectHostel
 };
+

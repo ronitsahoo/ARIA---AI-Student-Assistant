@@ -69,9 +69,10 @@ export const DataProvider = ({ children }) => {
 
         // Hostel
         const hostel = {
-            status: backendData.hostel.status === 'not_applied' ? 'not_applied' : backendData.hostel.status,
-            room: backendData.hostel.roomType || null,
-            type: backendData.hostel.roomType ? (backendData.hostel.roomType.includes('Boys') ? 'Male' : 'Female') : null
+            status: backendData.hostel.status || 'not_applied',
+            gender: backendData.hostel.gender || null,
+            roomType: backendData.hostel.roomType || null,
+            rejectionReason: backendData.hostel.rejectionReason || null
         };
 
         // LMS
@@ -237,12 +238,36 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    const applyHostel = async (gender) => {
+    const applyHostel = async (gender, roomType) => {
         try {
-            await api.post('/student/apply-hostel', { roomType: gender });
+            await api.post('/student/apply-hostel', { gender, roomType });
             await fetchStudentData();
+            return { success: true };
         } catch (error) {
             console.error(error);
+            const msg = error?.response?.data?.message || 'Failed to apply';
+            return { success: false, message: msg };
+        }
+    };
+
+    const fetchHostelApplications = async () => {
+        try {
+            const { data } = await api.get('/admin/hostel-applications');
+            return data;
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
+    };
+
+    const approveRejectHostel = async (studentId, status, rejectionReason = '') => {
+        try {
+            await api.put(`/admin/hostel-applications/${studentId}`, { status, rejectionReason });
+            await fetchAllStudents();
+            return true;
+        } catch (error) {
+            console.error(error);
+            return false;
         }
     };
 
@@ -296,7 +321,9 @@ export const DataProvider = ({ children }) => {
             applyHostel,
             activateLMS,
             updateModuleStatus,
-            updateStudentStatus
+            updateStudentStatus,
+            fetchHostelApplications,
+            approveRejectHostel
         }}>
             {children}
         </DataContext.Provider>

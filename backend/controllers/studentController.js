@@ -125,7 +125,21 @@ const submitDocuments = asyncHandler(async (req, res) => {
 });
 
 const applyHostel = asyncHandler(async (req, res) => {
-    const { roomType } = req.body;
+    const { gender, roomType } = req.body;
+
+    if (!gender || !roomType) {
+        res.status(400);
+        throw new Error('Gender and room type are required');
+    }
+
+    const validRoomTypes = ['single', 'double', 'triple'];
+    const validGenders = ['Male', 'Female'];
+
+    if (!validGenders.includes(gender) || !validRoomTypes.includes(roomType)) {
+        res.status(400);
+        throw new Error('Invalid gender or room type');
+    }
+
     const profile = await StudentProfile.findOne({ userId: req.user._id });
 
     if (profile) {
@@ -135,6 +149,16 @@ const applyHostel = asyncHandler(async (req, res) => {
 
         profile.hostel.roomType = `${roomType === 'Male' ? 'Boys' : 'Girls'} Hostel - ${block}-${floor}0${roomNo}`;
         profile.hostel.status = 'approved';
+        const currentStatus = profile.hostel.status;
+        if (currentStatus === 'pending' || currentStatus === 'approved') {
+            res.status(400);
+            throw new Error('You already have an active hostel application');
+        }
+
+        profile.hostel.gender = gender;
+        profile.hostel.roomType = roomType;
+        profile.hostel.status = 'pending';
+        profile.hostel.rejectionReason = undefined;
 
         await profile.save();
         res.json(profile);

@@ -25,12 +25,14 @@ const feeSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const hostelSchema = new mongoose.Schema({
-    roomType: { type: String },
+    gender: { type: String, enum: ['Male', 'Female'] },
+    roomType: { type: String, enum: ['single', 'double', 'triple'] },
     status: {
         type: String,
         enum: ['not_applied', 'pending', 'approved', 'rejected'],
         default: 'not_applied'
-    }
+    },
+    rejectionReason: { type: String }
 });
 
 const studentProfileSchema = new mongoose.Schema({

@@ -1,12 +1,39 @@
+import { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { Card, Button, Badge } from '../components/UI';
-import { Users, CheckCircle, AlertTriangle, TrendingUp, DollarSign, Download, Search, Filter, MoreVertical, FileText, PieChart } from 'lucide-react';
+import { Users, CheckCircle, AlertTriangle, TrendingUp, DollarSign, Download, Search, Filter, MoreVertical, FileText, PieChart, Home, Clock, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AdminDashboard() {
-    const { allStudents } = useData();
+    const { allStudents, fetchHostelApplications, approveRejectHostel } = useData();
     const { user } = useAuth();
+
+    const [hostelApps, setHostelApps] = useState([]);
+    const [hostelLoading, setHostelLoading] = useState(false);
+    const [rejectingId, setRejectingId] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [actionLoading, setActionLoading] = useState(null);
+
+    useEffect(() => {
+        const load = async () => {
+            setHostelLoading(true);
+            const apps = await fetchHostelApplications();
+            setHostelApps(apps);
+            setHostelLoading(false);
+        };
+        load();
+    }, []);
+
+    const handleHostelAction = async (studentId, status) => {
+        setActionLoading(studentId + status);
+        await approveRejectHostel(studentId, status, rejectReason);
+        const apps = await fetchHostelApplications();
+        setHostelApps(apps);
+        setRejectingId(null);
+        setRejectReason('');
+        setActionLoading(null);
+    };
 
     const students = allStudents.filter(s => s.role === 'student');
     const totalStudents = students.length;
@@ -233,6 +260,121 @@ export default function AdminDashboard() {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Hostel Applications */}
+            <motion.div variants={item} className="bg-white dark:bg-[#111] rounded-3xl border border-gray-200 dark:border-white/5 shadow-xl overflow-hidden">
+                <div className="p-6 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Home size={20} className="text-orange-500" />
+                        Hostel Applications
+                    </h3>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 px-2 py-1 rounded-full font-semibold">
+                        {hostelApps.filter(a => a.hostel?.status === 'pending').length} Pending
+                    </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {hostelLoading ? (
+                        <div className="flex items-center justify-center py-12 text-gray-400">
+                            <Clock size={24} className="animate-spin mr-2" /> Loading applications...
+                        </div>
+                    ) : hostelApps.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                            No hostel applications yet.
+                        </div>
+                    ) : (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/5">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">Student</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">Hostel Type</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">Room Type</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                {hostelApps.map((app) => (
+                                    <tr key={app.studentId} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-white">{app.name}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{app.branch} • {app.email}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-gray-700 dark:text-gray-300">
+                                                {app.hostel?.gender === 'Male' ? '👨 Boys' : '👩 Girls'} Hostel
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="capitalize text-gray-700 dark:text-gray-300">
+                                                {app.hostel?.roomType === 'single' ? '🛏️ Single' :
+                                                    app.hostel?.roomType === 'double' ? '🛏🛏 Double' :
+                                                        app.hostel?.roomType === 'triple' ? '🛏🛏🛏 Triple' : '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {app.hostel?.status === 'pending' && (
+                                                <span className="px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">⏳ PENDING</span>
+                                            )}
+                                            {app.hostel?.status === 'approved' && (
+                                                <span className="px-2 py-1 text-xs font-bold rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-500/20">✅ APPROVED</span>
+                                            )}
+                                            {app.hostel?.status === 'rejected' && (
+                                                <span className="px-2 py-1 text-xs font-bold rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20">❌ REJECTED</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            {app.hostel?.status === 'pending' && (
+                                                <div className="flex flex-col items-end gap-2">
+                                                    {rejectingId === app.studentId ? (
+                                                        <div className="flex flex-col items-end gap-2 w-full max-w-xs">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Reason for rejection..."
+                                                                value={rejectReason}
+                                                                onChange={e => setRejectReason(e.target.value)}
+                                                                className="w-full text-xs px-3 py-2 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                                            />
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                                                                    className="text-xs px-3 py-1 rounded-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                                                                >Cancel</button>
+                                                                <button
+                                                                    onClick={() => handleHostelAction(app.studentId, 'rejected')}
+                                                                    disabled={actionLoading === app.studentId + 'rejected'}
+                                                                    className="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+                                                                >{actionLoading === app.studentId + 'rejected' ? '...' : 'Confirm Reject'}</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleHostelAction(app.studentId, 'approved')}
+                                                                disabled={actionLoading === app.studentId + 'approved'}
+                                                                className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30 hover:bg-green-200 dark:hover:bg-green-500/30 disabled:opacity-50 font-semibold"
+                                                            >{actionLoading === app.studentId + 'approved' ? '...' : '✅ Approve'}</button>
+                                                            <button
+                                                                onClick={() => setRejectingId(app.studentId)}
+                                                                className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30 hover:bg-red-200 dark:hover:bg-red-500/30 font-semibold"
+                                                            >❌ Reject</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {app.hostel?.status !== 'pending' && (
+                                                <span className="text-xs text-gray-400 italic">No action needed</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </motion.div>
         </motion.div>
     );
 }

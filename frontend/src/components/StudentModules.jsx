@@ -325,22 +325,46 @@ export function FeePayment({ fullPage = false }) {
 
 // --- HOSTEL MODULE ---
 export function HostelApp({ fullPage = false }) {
-    const { studentData, applyHostel } = useData(); // NEW ACTION
+    const { studentData, applyHostel } = useData();
     const [gender, setGender] = useState(null);
+    const [roomType, setRoomType] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
     const styles = getModuleClasses(fullPage);
 
-    const hostelData = studentData?.hostel || { status: 'not_applied', room: null, type: null };
-    const isAllocated = hostelData.status === 'allocated' || hostelData.status === 'approved';
+    const hostelData = studentData?.hostel || { status: 'not_applied' };
+    const status = hostelData.status;
+    const isAllocated = status === 'approved';
+    const isPending = status === 'pending';
+    const isRejected = status === 'rejected';
+    const notApplied = status === 'not_applied';
+
+    const roomTypeLabels = {
+        single: { label: 'Single Room', icon: '🛏️', desc: 'Private room for one' },
+        double: { label: 'Double Sharing', icon: '🛏🛏', desc: 'Shared with one roommate' },
+        triple: { label: 'Triple Sharing', icon: '🛏🛏🛏', desc: 'Shared with two roommates' },
+    };
 
     const handleApply = async () => {
-        if (!gender) return;
+        if (!gender || !roomType) return;
         setLoading(true);
+        setErrorMsg('');
         try {
-            await applyHostel(gender);
-        } catch (e) { console.error(e) } finally {
+            const result = await applyHostel(gender, roomType);
+            if (result && !result.success) {
+                setErrorMsg(result.message || 'Failed to submit application');
+            }
+        } catch (e) {
+            setErrorMsg('Something went wrong. Please try again.');
+        } finally {
             setLoading(false);
         }
+    };
+
+    const handleReApply = () => {
+        setGender(null);
+        setRoomType(null);
+        setErrorMsg('');
     };
 
     return (
@@ -354,43 +378,129 @@ export function HostelApp({ fullPage = false }) {
                     <h3 className={`${styles.headerSize} font-bold flex items-center gap-3 text-gray-900 dark:text-white dark:text-glow`}>
                         <Home size={styles.iconHeaderSize} className="text-orange-500 dark:text-orange-400" /> Hostel
                     </h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isAllocated ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20' : 'bg-gray-100 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500/20'}`}>
-                        {isAllocated ? 'ALLOCATED' : 'NOT APPLIED'}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isAllocated ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20' :
+                            isPending ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20' :
+                                isRejected ? 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-500 border-red-200 dark:border-red-500/20' :
+                                    'bg-gray-100 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500/20'
+                        }`}>
+                        {isAllocated ? 'APPROVED' : isPending ? 'PENDING' : isRejected ? 'REJECTED' : 'NOT APPLIED'}
                     </span>
                 </div>
 
-                {!isAllocated ? (
-                    <div className="flex-1 flex flex-col justify-center">
-                        <p className={`${styles.subHeader} text-gray-500 dark:text-gray-400 mb-8`}>Select your preference to apply for hostel accommodation.</p>
-                        <div className="flex gap-6 mb-8">
-                            <div onClick={() => setGender('Male')} className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${gender === 'Male' ? 'bg-orange-50 dark:bg-orange-500/20 border-orange-500 text-orange-600 dark:text-orange-400' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'}`}>
-                                <span className="text-4xl">👨</span>
-                                <span className={styles.subHeader + " font-bold uppercase"}>Boys Hostel</span>
+                {/* === NOT APPLIED: Application Form === */}
+                {(notApplied || isRejected) && (
+                    <div className="flex-1 flex flex-col">
+                        {isRejected && (
+                            <div className="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
+                                <p className="text-red-600 dark:text-red-400 text-sm font-semibold flex items-center gap-2 mb-1">
+                                    <XCircle size={16} /> Application Rejected
+                                </p>
+                                <p className="text-red-500 dark:text-red-400/80 text-sm">
+                                    {hostelData.rejectionReason || 'Your hostel application was rejected.'}
+                                </p>
+                                <p className="text-gray-500 dark:text-gray-400 text-xs mt-2">You can submit a new application below.</p>
                             </div>
-                            <div onClick={() => setGender('Female')} className={`flex-1 p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${gender === 'Female' ? 'bg-pink-50 dark:bg-pink-500/20 border-pink-500 text-pink-600 dark:text-pink-400' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'}`}>
-                                <span className="text-4xl">👩</span>
-                                <span className={styles.subHeader + " font-bold uppercase"}>Girls Hostel</span>
+                        )}
+
+                        {/* Step 1: Gender */}
+                        <p className={`${styles.subHeader} text-gray-600 dark:text-gray-400 mb-3 font-semibold uppercase tracking-wider text-xs`}>
+                            Step 1 — Select Hostel Type
+                        </p>
+                        <div className="flex gap-4 mb-6">
+                            <div onClick={() => setGender('Male')} className={`flex-1 p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${gender === 'Male' ? 'bg-orange-50 dark:bg-orange-500/20 border-orange-500 text-orange-600 dark:text-orange-400' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400'}`}>
+                                <span className="text-3xl">👨</span>
+                                <span className="text-sm font-bold uppercase">Boys Hostel</span>
+                            </div>
+                            <div onClick={() => setGender('Female')} className={`flex-1 p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${gender === 'Female' ? 'bg-pink-50 dark:bg-pink-500/20 border-pink-500 text-pink-600 dark:text-pink-400' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400'}`}>
+                                <span className="text-3xl">👩</span>
+                                <span className="text-sm font-bold uppercase">Girls Hostel</span>
                             </div>
                         </div>
-                        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white border-none shadow-lg shadow-orange-500/20" onClick={handleApply} disabled={!gender} isLoading={loading} size={styles.buttonSize}>
+
+                        {/* Step 2: Room Type */}
+                        <p className={`${styles.subHeader} text-gray-600 dark:text-gray-400 mb-3 font-semibold uppercase tracking-wider text-xs`}>
+                            Step 2 — Select Room Type
+                        </p>
+                        <div className="flex flex-col gap-3 mb-6">
+                            {Object.entries(roomTypeLabels).map(([key, rt]) => (
+                                <div key={key} onClick={() => setRoomType(key)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-4 ${roomType === key ? 'bg-orange-50 dark:bg-orange-500/15 border-orange-400 dark:border-orange-500' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'}`}>
+                                    <span className="text-2xl">{rt.icon}</span>
+                                    <div className="flex-1">
+                                        <p className={`font-bold text-sm ${roomType === key ? 'text-orange-600 dark:text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>{rt.label}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{rt.desc}</p>
+                                    </div>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${roomType === key ? 'border-orange-500 bg-orange-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                                        {roomType === key && <div className="w-full h-full rounded-full flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full"></div></div>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {errorMsg && (
+                            <p className="text-red-500 text-sm mb-4 flex items-center gap-2"><AlertCircle size={14} /> {errorMsg}</p>
+                        )}
+
+                        <Button
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white border-none shadow-lg shadow-orange-500/20"
+                            onClick={handleApply}
+                            disabled={!gender || !roomType}
+                            isLoading={loading}
+                            size={styles.buttonSize}
+                        >
                             Submit Application
                         </Button>
                     </div>
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
-                        <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-6 border border-green-200 dark:border-green-500/20">
-                            <Home size={48} className="text-green-600 dark:text-green-500" />
+                )}
+
+                {/* === PENDING: Waiting for Approval === */}
+                {isPending && (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
+                        <div className="w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center mb-5 border border-yellow-200 dark:border-yellow-500/20 animate-pulse">
+                            <Clock size={40} className="text-yellow-500" />
                         </div>
-                        <h4 className={`${styles.subHeader} font-bold text-gray-900 dark:text-white mb-2`}>Room Allocated!</h4>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">Your application has been approved.</p>
-                        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-100 dark:border-white/10 w-full max-w-md mx-auto">
-                            <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-white/5 pb-4">
-                                <span className="text-gray-500 dark:text-gray-400 text-sm">Hostel Type</span>
-                                <span className="text-gray-900 dark:text-white font-bold">{hostelData.type} Wing</span>
+                        <h4 className={`${styles.subHeader} font-bold text-gray-900 dark:text-white mb-2`}>Application Submitted!</h4>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Your application is under review. You'll be notified once approved.</p>
+                        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-100 dark:border-white/10 w-full max-w-sm mx-auto text-left space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Hostel</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">{hostelData.gender === 'Male' ? '👨 Boys' : '👩 Girls'} Hostel</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-500 dark:text-gray-400 text-sm">Room No.</span>
-                                <span className="text-blue-600 dark:text-neon-blue text-2xl font-bold font-mono">{hostelData.room || 'Allocated'}</span>
+                            <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-white/5 pt-3">
+                                <span className="text-gray-500 dark:text-gray-400">Room Type</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200 capitalize">
+                                    {hostelData.roomType ? roomTypeLabels[hostelData.roomType]?.label : 'N/A'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-white/5 pt-3">
+                                <span className="text-gray-500 dark:text-gray-400">Status</span>
+                                <span className="font-bold text-yellow-500 uppercase text-xs">⏳ Awaiting Approval</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* === APPROVED: Room Allocated === */}
+                {isAllocated && (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
+                        <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-5 border border-green-200 dark:border-green-500/20">
+                            <CheckCircle size={40} className="text-green-600 dark:text-green-500" />
+                        </div>
+                        <h4 className={`${styles.subHeader} font-bold text-gray-900 dark:text-white mb-2`}>Application Approved!</h4>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Your hostel accommodation has been confirmed.</p>
+                        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-100 dark:border-white/10 w-full max-w-sm mx-auto text-left space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Hostel</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">{hostelData.gender === 'Male' ? '👨 Boys' : '👩 Girls'} Hostel</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-white/5 pt-3">
+                                <span className="text-gray-500 dark:text-gray-400">Room Type</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200 capitalize">
+                                    {hostelData.roomType ? roomTypeLabels[hostelData.roomType]?.label : 'N/A'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-white/5 pt-3">
+                                <span className="text-gray-500 dark:text-gray-400">Status</span>
+                                <span className="font-bold text-green-600 dark:text-green-400 uppercase text-xs">✅ Approved</span>
                             </div>
                         </div>
                     </div>
