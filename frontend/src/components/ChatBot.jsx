@@ -1,81 +1,121 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, MessageSquare, X, ChevronDown } from 'lucide-react';
+import { Send, Bot, MessageSquare, X, ChevronDown, Paperclip, Loader } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import api from '../services/api';
 
 export default function ChatBot() {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        { id: 1, sender: 'bot', text: 'Hi! I am ARIA, your smart assistant. Ask me about your documents, fees, hostel application, or timetable!' }
-    ]);
+    const [messages, setMessages] = useState([]); // { id, sender, message, attachment }
     const [input, setInput] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
     const messagesEndRef = useRef(null);
-    const { studentData } = useData();
+    const fileInputRef = useRef(null);
+    const { fetchStudentData } = useData();
+    // Strip /api suffix
+    const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     useEffect(() => {
-        if (isOpen) scrollToBottom();
-    }, [messages, isOpen]);
+        if (isOpen) {
+            fetchChatHistory();
+            scrollToBottom();
+        }
+    }, [isOpen]);
 
-    const handleSend = () => {
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const fetchChatHistory = async () => {
+        try {
+            const { data } = await api.get('/chat/history');
+            setMessages(data);
+        } catch (error) {
+            console.error("Failed to load chat history", error);
+        }
+    };
+
+    const handleSend = async () => {
         if (!input.trim()) return;
 
-        const userMsg = { id: Date.now(), sender: 'user', text: input };
-        setMessages(prev => [...prev, userMsg]);
+        const text = input;
         setInput('');
 
-        // Enhanced AI Logic
-        setTimeout(() => {
-            let botResponse = "I'm not sure about that. Try asking about 'fee', 'documents', 'hostel', 'timetable', or 'subjects'.";
-            const lowerInput = input.toLowerCase();
+        // Optimistic UI update
+        const tempId = Date.now();
+        setMessages(prev => [...prev, { _id: tempId, sender: 'student', message: text }]);
 
-            // Same logic as before
-            if (lowerInput.includes('fee') || lowerInput.includes('payment') || lowerInput.includes('balance')) {
-                const total = studentData?.fee?.totalAmount || 50000;
-                const paid = studentData?.fee?.paidAmount || 0;
-                const remaining = total - paid;
-                if (remaining <= 0) {
-                    botResponse = `Great news! Your tuition fees are fully paid. (Total: ₹${total.toLocaleString()})`;
-                } else {
-                    botResponse = `You have paid ₹${paid.toLocaleString()}. The remaining balance is **₹${remaining.toLocaleString()}**. You can pay part of it now using the presets in the Fees module.`;
-                }
-            } else if (lowerInput.includes('document') || lowerInput.includes('upload') || lowerInput.includes('pending')) {
-                const files = studentData?.documents?.files || {};
-                const pendingDocs = Object.entries(files)
-                    .filter(([_, data]) => data.status !== 'approved' && data.status !== 'submitted')
-                    .map(([name]) => name);
+        try {
+            const { data } = await api.post('/chat/text', { message: text });
+            // Add real response
+            setMessages(prev => [...prev, data]);
+        } catch (error) {
+            console.error("Failed to send message", error);
+            // Revert optimistic update
+            setMessages(prev => prev.filter(m => m._id !== tempId));
+        }
+    };
 
-                if (pendingDocs.length > 0) {
-                    botResponse = `You still need to upload/submit: **${pendingDocs.join(', ')}**. Please check the Documents module to upload them.`;
-                } else {
-                    botResponse = `All your documents are submitted or approved! You're good to go.`;
-                }
-            } else if (lowerInput.includes('hostel') || lowerInput.includes('room')) {
-                const status = studentData?.hostel?.status || 'not_applied';
-                if (status === 'allocated' || status === 'approved') {
-                    botResponse = `Your hostel room is allocated! Check your room number in the Hostel module.`;
-                } else {
-                    botResponse = `You haven't been allocated a room yet. Apply now in the Hostel module.`;
-                }
-            } else if (lowerInput.includes('subject') || lowerInput.includes('course') || lowerInput.includes('study')) {
-                botResponse = "For 1st Year Engineering, your subjects include Mathematics I, Physics, Basic Electrical Engg, Programming (CS101), and Engineering Graphics.";
-            } else if (lowerInput.includes('timetable') || lowerInput.includes('schedule')) {
-                botResponse = "Your timetable is available in the LMS module under the 'Timetable' tab.";
-            } else if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-                botResponse = "Hello! How can I help you complete your registration today?";
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            alert("Only PDF, JPG, and PNG files are allowed.");
+            return;
+        }
+
+        setIsProcessing(true);
+
+        // Upload
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            // Optimistic user message with attachment
+            const tempId = Date.now();
+            setMessages(prev => [...prev, {
+                _id: tempId,
+                sender: 'student',
+                message: file.name,
+                attachment: URL.createObjectURL(file) // temporary preview
+            }]);
+
+            const { data } = await api.post('/chat/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            await fetchChatHistory();
+
+            if (data.mapped) {
+                // If document was mapped, update dashboard data
+                await fetchStudentData();
             }
 
-            setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: botResponse }]);
-        }, 800);
+        } catch (error) {
+            console.error("Upload failed", error);
+            // Append error message from bot
+            setMessages(prev => [...prev, {
+                _id: Date.now(),
+                sender: 'aria',
+                message: "Sorry, I encountered an error uploading your document. Please try again."
+            }]);
+        } finally {
+            setIsProcessing(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
             {/* Chat Window */}
             <div
-                className={`w-[350px] sm:w-[400px] h-[500px] bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right pointer-events-auto
+                className={`w-[350px] sm:w-[400px] h-[550px] bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right pointer-events-auto
                 ${isOpen ? 'opacity-100 scale-100 translate-y-0 visible' : 'opacity-0 scale-90 translate-y-10 invisible pointer-events-none'}`}
             >
                 {/* Header */}
@@ -98,33 +138,84 @@ export default function ChatBot() {
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-dark-bg/50 custom-scrollbar">
+                    {messages.length === 0 && (
+                        <div className="text-center text-gray-500 text-sm mt-10">
+                            <p>👋 Hi! Upload a document to auto-classify it, or ask about your fees.</p>
+                        </div>
+                    )}
+
                     {messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm ${msg.sender === 'user'
-                                ? 'bg-blue-600 dark:bg-neon-blue text-white font-medium rounded-tr-none'
-                                : 'bg-white dark:bg-white/10 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/5 rounded-tl-none'
+                        <div key={msg._id || msg.id} className={`flex ${msg.sender === 'student' || msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm ${msg.sender === 'student' || msg.sender === 'user'
+                                    ? 'bg-blue-600 dark:bg-neon-blue text-white font-medium rounded-tr-none'
+                                    : 'bg-white dark:bg-white/10 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/5 rounded-tl-none'
                                 }`}>
-                                <p>{msg.text}</p>
+
+                                {msg.attachment && (
+                                    <div className="mb-2">
+                                        {msg.attachment.match(/\.(jpg|jpeg|png)$/i) || msg.attachment.startsWith('blob:') ? (
+                                            <img
+                                                src={msg.attachment.startsWith('blob:') ? msg.attachment : `${SERVER_URL}${msg.attachment}`}
+                                                alt="Attachment"
+                                                className="rounded-lg max-h-40 object-cover border border-white/20"
+                                            />
+                                        ) : (
+                                            <div className="flex items-center gap-2 bg-black/10 p-2 rounded">
+                                                <Paperclip size={16} />
+                                                <span className="truncate max-w-[150px]">Document</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <p className="whitespace-pre-wrap">{msg.message}</p>
                             </div>
                         </div>
                     ))}
+
+                    {isProcessing && (
+                        <div className="flex justify-start">
+                            <div className="bg-white dark:bg-white/10 p-3 rounded-2xl rounded-tl-none border border-gray-200 dark:border-white/5 flex items-center gap-2">
+                                <Loader className="animate-spin text-blue-600 dark:text-neon-blue" size={16} />
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Analyzing document...</span>
+                            </div>
+                        </div>
+                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input */}
                 <div className="p-4 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-dark-bg/30">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileSelect}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-2.5 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                            title="Attach Document"
+                            disabled={isProcessing}
+                        >
+                            <Paperclip size={20} />
+                        </button>
+
                         <input
                             type="text"
                             className="flex-1 bg-gray-100 dark:bg-dark-input border border-transparent dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-neon-blue transition-all placeholder:text-gray-500"
-                            placeholder="Ask me anything..."
+                            placeholder="Type a message..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            disabled={isProcessing}
                         />
                         <button
                             onClick={handleSend}
-                            className="p-2.5 bg-blue-600 dark:bg-neon-blue rounded-xl text-white hover:bg-blue-700 dark:hover:bg-white dark:hover:text-black transition-all shadow-md active:scale-95"
+                            disabled={!input.trim() || isProcessing}
+                            className="p-2.5 bg-blue-600 dark:bg-neon-blue rounded-xl text-white hover:bg-blue-700 dark:hover:bg-white dark:hover:text-black transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Send size={18} />
                         </button>

@@ -16,7 +16,19 @@ export const DataProvider = ({ children }) => {
         if (!backendData) return null;
 
         // Documents
-        const defaultDocs = ["10th Marksheet", "12th Marksheet", "ID Proof", "Transfer Certificate"];
+        const defaultDocs = [
+            "10th Marksheet",
+            "12th Marksheet",
+            "Diploma Marksheet",
+            "Aadhaar Card",
+            "PAN Card",
+            "Transfer Certificate",
+            "Caste Certificate",
+            "Income Certificate",
+            "Migration Certificate",
+            "Passport Photo",
+            "Signature"
+        ];
         const files = {};
         let approvedCount = 0;
 
