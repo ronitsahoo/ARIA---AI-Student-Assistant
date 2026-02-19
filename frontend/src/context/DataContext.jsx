@@ -67,16 +67,18 @@ export const DataProvider = ({ children }) => {
         else if (allStatuses.some(s => s === 'uploaded')) overallDocStatus = 'uploaded';
 
         // Fee
-        const feeStatus = backendData.fee.status;
+        const feeData = backendData.fee || {};
         const fee = {
-            status: feeStatus,
-            totalAmount: 50000,
-            paidAmount: feeStatus === 'paid' ? 50000 : 0,
-            history: feeStatus === 'paid' ? [{
-                amount: 50000,
-                date: backendData.fee.updatedAt || new Date().toISOString(),
-                id: backendData.fee.transactionId
-            }] : []
+            status: feeData.status || 'pending',
+            totalAmount: feeData.totalAmount || 50000,
+            paidAmount: feeData.paidAmount || 0,
+            history: (feeData.history || []).map(h => ({
+                amount: h.amount,
+                date: h.date,
+                id: h.transactionId,
+                transactionId: h.transactionId,
+                orderId: h.orderId
+            }))
         };
 
         // Hostel
@@ -292,6 +294,16 @@ export const DataProvider = ({ children }) => {
         }
     };
 
+    const fetchAllPayments = async () => {
+        try {
+            const { data } = await api.get('/admin/payments');
+            return data;
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
+    };
+
     const approveRejectHostel = async (studentId, status, rejectionReason = '') => {
         try {
             await api.put(`/admin/hostel-applications/${studentId}`, { status, rejectionReason });
@@ -389,7 +401,8 @@ export const DataProvider = ({ children }) => {
             updateModuleStatus,
             updateStudentStatus,
             fetchHostelApplications,
-            approveRejectHostel
+            approveRejectHostel,
+            fetchAllPayments
         }}>
             {children}
         </DataContext.Provider>

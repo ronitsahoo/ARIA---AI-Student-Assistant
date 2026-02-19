@@ -84,10 +84,48 @@ const approveRejectHostel = asyncHandler(async (req, res) => {
     res.json({ message: `Hostel application ${status}`, hostel: profile.hostel });
 });
 
+// @desc    Get all payment transactions
+// @route   GET /api/admin/payments
+// @access  Private (Admin)
+const getAllPayments = asyncHandler(async (req, res) => {
+    const students = await StudentProfile.find({})
+        .populate('userId', 'name email branch year')
+        .sort({ createdAt: -1 });
+
+    const allTransactions = [];
+
+    students.forEach(student => {
+        if (student.fee && student.fee.history && student.fee.history.length > 0) {
+            student.fee.history.forEach(payment => {
+                allTransactions.push({
+                    studentId: student.userId._id,
+                    studentName: student.userId.name,
+                    email: student.userId.email,
+                    branch: student.userId.branch,
+                    year: student.userId.year,
+                    amount: payment.amount,
+                    date: payment.date,
+                    transactionId: payment.transactionId,
+                    orderId: payment.orderId,
+                    totalAmount: student.fee.totalAmount,
+                    paidAmount: student.fee.paidAmount,
+                    status: student.fee.status
+                });
+            });
+        }
+    });
+
+    // Sort by date (most recent first)
+    allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json(allTransactions);
+});
+
 module.exports = {
     getStudents,
     getAnalytics,
     getHostelApplications,
-    approveRejectHostel
+    approveRejectHostel,
+    getAllPayments
 };
 

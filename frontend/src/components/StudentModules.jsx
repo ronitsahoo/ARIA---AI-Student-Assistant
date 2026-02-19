@@ -274,10 +274,18 @@ export function FeePayment({ fullPage = false }) {
     const isPaid = feeData.status === 'paid';
 
     const handlePay = async (payAmount) => {
-        if (!payAmount || payAmount <= 0) return;
+        const numAmount = Number(payAmount);
+        if (!numAmount || numAmount <= 0) {
+            alert('⚠️ Please enter a valid amount');
+            return;
+        }
+        if (numAmount > remaining) {
+            alert('⚠️ Amount exceeds remaining balance of ₹' + remaining.toLocaleString());
+            return;
+        }
         setLoading(true);
         try {
-            await initiateFeePayment(payAmount);
+            await initiateFeePayment(numAmount);
         } catch (e) { 
             console.error(e);
             alert('Payment failed. Please try again.');
@@ -398,31 +406,33 @@ export function FeePayment({ fullPage = false }) {
                 {/* Payment Section */}
                 {!isPaid && (
                     <div className="space-y-5 mb-8">
-                        {/* Quick Pay Buttons */}
+                        {/* Quick Pay Buttons - Only Full or Half */}
                         <div className="grid grid-cols-2 gap-3">
                             <button 
-                                onClick={() => setAmount(remaining)} 
-                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 dark:hover:from-purple-500 dark:hover:to-purple-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                onClick={() => handlePay(50000)} 
+                                disabled={loading || remaining < 25000}
+                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 dark:hover:from-purple-500 dark:hover:to-purple-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                 <div className="relative flex flex-col items-center">
                                     <span className="text-xs font-bold uppercase tracking-wider opacity-90">Pay Full</span>
-                                    <span className="text-lg font-black">₹{(remaining / 1000).toFixed(0)}k</span>
+                                    <span className="text-lg font-black">₹50K</span>
                                 </div>
                             </button>
                             <button 
-                                onClick={() => setAmount(Math.ceil(remaining / 2))} 
-                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-pink-500 to-pink-600 dark:from-pink-600 dark:to-pink-700 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 dark:hover:from-pink-500 dark:hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                onClick={() => handlePay(25000)} 
+                                disabled={loading || remaining < 25000}
+                                className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-pink-500 to-pink-600 dark:from-pink-600 dark:to-pink-700 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 dark:hover:from-pink-500 dark:hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                 <div className="relative flex flex-col items-center">
                                     <span className="text-xs font-bold uppercase tracking-wider opacity-90">Pay Half</span>
-                                    <span className="text-lg font-black">₹{(Math.ceil(remaining / 2) / 1000).toFixed(0)}k</span>
+                                    <span className="text-lg font-black">₹25K</span>
                                 </div>
                             </button>
                         </div>
 
-                        {/* Custom Amount Input */}
+                        {/* Custom Amount Input - Can be any amount */}
                         <div className="flex gap-3">
                             <div className="flex-1 relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 font-bold text-lg">₹</span>
@@ -438,7 +448,7 @@ export function FeePayment({ fullPage = false }) {
                             <Button
                                 onClick={() => handlePay(amount)}
                                 isLoading={loading}
-                                disabled={!amount || amount > remaining || amount <= 0}
+                                disabled={!amount || loading}
                                 variant="primary"
                                 className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-neon-purple dark:via-neon-magenta dark:to-neon-purple hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none px-8"
                                 size={styles.buttonSize}
@@ -447,11 +457,15 @@ export function FeePayment({ fullPage = false }) {
                             </Button>
                         </div>
                         
-                        {amount > remaining && (
+                        {amount && Number(amount) > remaining && (
                             <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 animate-pulse">
-                                <AlertCircle size={12} /> Amount exceeds remaining balance
+                                <AlertCircle size={12} /> Amount exceeds remaining balance of ₹{remaining.toLocaleString()}
                             </p>
                         )}
+                        
+                        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                            Quick pay ₹50,000 or ₹25,000, or enter any custom amount
+                        </p>
                     </div>
                 )}
 
