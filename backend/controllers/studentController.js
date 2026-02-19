@@ -143,12 +143,6 @@ const applyHostel = asyncHandler(async (req, res) => {
     const profile = await StudentProfile.findOne({ userId: req.user._id });
 
     if (profile) {
-        const block = roomType === 'Male' ? 'B' : 'G';
-        const floor = Math.floor(Math.random() * 4) + 1;
-        const roomNo = Math.floor(Math.random() * 20) + 1;
-
-        profile.hostel.roomType = `${roomType === 'Male' ? 'Boys' : 'Girls'} Hostel - ${block}-${floor}0${roomNo}`;
-        profile.hostel.status = 'approved';
         const currentStatus = profile.hostel.status;
         if (currentStatus === 'pending' || currentStatus === 'approved') {
             res.status(400);
