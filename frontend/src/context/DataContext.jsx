@@ -280,6 +280,37 @@ export const DataProvider = ({ children }) => {
         }
     };
 
+    const fetchSubjects = async () => {
+        try {
+            const { data } = await api.get('/student/subjects');
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch subjects", error);
+            return [];
+        }
+    };
+
+    const registerSubject = async (subjectId) => {
+        try {
+            await api.post('/student/register-subject', { subjectId });
+            await fetchStudentData();
+            return true;
+        } catch (error) {
+            console.error("Failed to register subject", error);
+            throw error;
+        }
+    };
+
+    const fetchRegisteredSubjects = async () => {
+        try {
+            const { data } = await api.get('/student/registered-subjects');
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch registered subjects", error);
+            return [];
+        }
+    };
+
     const updateModuleStatus = (moduleName, newData) => {
         console.warn("updateModuleStatus is deprecated. Use specific actions.");
     };
@@ -320,6 +351,9 @@ export const DataProvider = ({ children }) => {
             initiateFeePayment,
             applyHostel,
             activateLMS,
+            fetchSubjects,
+            registerSubject,
+            fetchRegisteredSubjects,
             updateModuleStatus,
             updateStudentStatus,
             fetchHostelApplications,

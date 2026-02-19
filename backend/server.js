@@ -15,7 +15,7 @@ const app = express();
 // Middleware
 // Middleware
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log(`📝 [${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
@@ -25,7 +25,7 @@ app.use(cors({
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            console.log("CORS Blocked:", origin);
+            console.log("🚫 CORS Blocked:", origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -63,5 +63,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    console.log(`\n🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    console.log(`🌐 API available at: http://localhost:${PORT}`);
+    console.log(`✨ Ready to handle requests!\n`);
 });

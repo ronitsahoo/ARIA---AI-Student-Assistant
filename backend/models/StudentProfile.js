@@ -49,6 +49,10 @@ const studentProfileSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    registeredSubjects: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subject'
+    }],
     progressPercentage: {
         type: Number,
         default: 0

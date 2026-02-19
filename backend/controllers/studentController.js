@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const StudentProfile = require('../models/StudentProfile');
+const Subject = require('../models/Subject');
 const fs = require('fs');
 const path = require('path');
 
@@ -180,11 +181,102 @@ const activateLMS = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Get available subjects based on student's year and branch
+// @route   GET /api/student/subjects
+// @access  Private (Student)
+const getSubjects = asyncHandler(async (req, res) => {
+    const user = req.user;
+    
+    if (!user.year || !user.branch) {
+        res.status(400);
+        throw new Error('Student year and branch information is required');
+    }
+
+    // For 1st year students, get common subjects
+    // For 2nd-4th year, get branch-specific subjects
+    let subjects;
+    if (user.year === '1') {
+        subjects = await Subject.find({ year: '1', branch: 'Common' }).sort({ code: 1 });
+    } else {
+        subjects = await Subject.find({ year: user.year, branch: user.branch }).sort({ code: 1 });
+    }
+
+    res.json(subjects);
+});
+
+// @desc    Register for a subject
+// @route   POST /api/student/register-subject
+// @access  Private (Student)
+const registerSubject = asyncHandler(async (req, res) => {
+    const { subjectId } = req.body;
+
+    if (!subjectId) {
+        res.status(400);
+        throw new Error('Subject ID is required');
+    }
+
+    const profile = await StudentProfile.findOne({ userId: req.user._id });
+
+    if (!profile) {
+        res.status(404);
+        throw new Error('Profile not found');
+    }
+
+    // Check if already registered
+    if (profile.registeredSubjects.includes(subjectId)) {
+        res.status(400);
+        throw new Error('Already registered for this subject');
+    }
+
+    // Verify subject exists and matches student's year/branch
+    const subject = await Subject.findById(subjectId);
+    if (!subject) {
+        res.status(404);
+        throw new Error('Subject not found');
+    }
+
+    // Validate subject is appropriate for student
+    if (req.user.year === '1' && (subject.year !== '1' || subject.branch !== 'Common')) {
+        res.status(400);
+        throw new Error('This subject is not available for 1st year students');
+    } else if (req.user.year !== '1' && (subject.year !== req.user.year || subject.branch !== req.user.branch)) {
+        res.status(400);
+        throw new Error('This subject is not available for your year and branch');
+    }
+
+    profile.registeredSubjects.push(subjectId);
+    await profile.save();
+
+    const updatedProfile = await StudentProfile.findOne({ userId: req.user._id })
+        .populate('registeredSubjects')
+        .populate('userId', 'name email branch year');
+
+    res.json(updatedProfile);
+});
+
+// @desc    Get registered subjects
+// @route   GET /api/student/registered-subjects
+// @access  Private (Student)
+const getRegisteredSubjects = asyncHandler(async (req, res) => {
+    const profile = await StudentProfile.findOne({ userId: req.user._id })
+        .populate('registeredSubjects');
+
+    if (!profile) {
+        res.status(404);
+        throw new Error('Profile not found');
+    }
+
+    res.json(profile.registeredSubjects || []);
+});
+
 module.exports = {
     getProfile,
     uploadDocument,
     deleteDocument,
     submitDocuments,
     applyHostel,
-    activateLMS
+    activateLMS,
+    getSubjects,
+    registerSubject,
+    getRegisteredSubjects
 };

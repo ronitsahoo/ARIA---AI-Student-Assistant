@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, CreditCard, Home, BookOpen, Clock, XCircle, FileText, Download } from 'lucide-react';
 import { Button, Card, Input } from '../components/UI';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
 // Helper for conditional classes
 const getModuleClasses = (fullPage) => ({
@@ -512,26 +513,51 @@ export function HostelApp({ fullPage = false }) {
 
 // --- LMS MODULE ---
 export function LMSActivation({ fullPage = false }) {
-    const { studentData, activateLMS } = useData(); // NEW ACTION
+    const { studentData, activateLMS, fetchSubjects, registerSubject, fetchRegisteredSubjects } = useData();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('courses');
     const [registering, setRegistering] = useState(null);
+    const [courses, setCourses] = useState([]);
+    const [registeredCourses, setRegisteredCourses] = useState([]);
+    const [loading, setLoading] = useState(false);
     const styles = getModuleClasses(fullPage);
 
     const lmsData = studentData?.lms || { status: 'inactive', registeredCourses: [] };
     const isActive = lmsData.status === 'active';
 
-    const courses = [
-        { code: 'MA101', name: 'Engineering Mathematics I', credits: 4 },
-        { code: 'PH101', name: 'Engineering Physics', credits: 4 },
-        { code: 'EE101', name: 'Basic Electrical Engg', credits: 3 },
-        { code: 'CS101', name: 'Intro to Programming', credits: 3 },
-        { code: 'EG101', name: 'Engineering Graphics', credits: 2 },
-    ];
+    // Fetch subjects when LMS is activated
+    useEffect(() => {
+        if (isActive) {
+            loadSubjects();
+            loadRegisteredSubjects();
+        }
+    }, [isActive]);
+
+    const loadSubjects = async () => {
+        setLoading(true);
+        try {
+            const subjects = await fetchSubjects();
+            setCourses(subjects);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadRegisteredSubjects = async () => {
+        try {
+            const registered = await fetchRegisteredSubjects();
+            setRegisteredCourses(registered.map(s => s._id));
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const timetable = [
-        { time: '09:00 - 10:00', mon: 'MA101', tue: 'PH101', wed: 'EE101', thu: 'CS101', fri: 'EG101' },
-        { time: '10:00 - 11:00', mon: 'PH101', tue: 'EE101', wed: 'CS101', thu: 'EG101', fri: 'MA101' },
-        { time: '11:00 - 12:00', mon: 'EE101', tue: 'CS101', wed: 'EG101', thu: 'MA101', fri: 'PH101' },
+        { time: '09:00 - 10:00', mon: 'Lecture 1', tue: 'Lecture 2', wed: 'Lecture 3', thu: 'Lecture 4', fri: 'Lecture 5' },
+        { time: '10:00 - 11:00', mon: 'Lecture 2', tue: 'Lecture 3', wed: 'Lecture 4', thu: 'Lecture 5', fri: 'Lecture 1' },
+        { time: '11:00 - 12:00', mon: 'Lecture 3', tue: 'Lecture 4', wed: 'Lecture 5', thu: 'Lecture 1', fri: 'Lecture 2' },
         { time: '02:00 - 05:00', mon: 'Lab A', tue: 'Lab B', wed: 'Library', thu: 'Sports', fri: 'Club' },
     ];
 
@@ -541,18 +567,16 @@ export function LMSActivation({ fullPage = false }) {
         } catch (e) { console.error(e) }
     };
 
-    const handleRegister = (courseCode) => {
-        // Implement Course Registration if needed, for now just UI mock with state update?
-        // But context doesn't handle course registration API.
-        // Skipping for now as user requirement specifically said "LMS activation API call".
-        // Course registration logic was not explicitly asked for backend API.
-        // But user did "Improve UI/UX and Course Registration" in previous memory?
-        // I'll leave it as UI or add a simple console log.
-        setRegistering(courseCode);
-        setTimeout(() => {
+    const handleRegister = async (subjectId) => {
+        setRegistering(subjectId);
+        try {
+            await registerSubject(subjectId);
+            setRegisteredCourses([...registeredCourses, subjectId]);
+        } catch (error) {
+            alert(error.response?.data?.message || "Failed to register for subject");
+        } finally {
             setRegistering(null);
-            alert("Course Registration API not fully implemented in backend in this iteration.");
-        }, 800);
+        }
     };
 
     return (
@@ -580,6 +604,14 @@ export function LMSActivation({ fullPage = false }) {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col h-full">
+                        {user && (
+                            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                                <p className="text-sm text-blue-700 dark:text-blue-400">
+                                    <span className="font-bold">Year {user.year}</span> - <span className="font-bold">{user.branch}</span> Stream
+                                </p>
+                            </div>
+                        )}
+                        
                         <div className="flex gap-4 mb-6 bg-gray-100 dark:bg-white/5 p-1 rounded-lg">
                             <button onClick={() => setActiveTab('courses')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'courses' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>Courses</button>
                             <button onClick={() => setActiveTab('timetable')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'timetable' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>Timetable</button>
@@ -587,26 +619,32 @@ export function LMSActivation({ fullPage = false }) {
 
                         {activeTab === 'courses' ? (
                             <div className={`space-y-4 overflow-y-auto ${fullPage ? 'max-h-[60vh]' : 'max-h-[400px]'} custom-scrollbar pr-2 h-full`}>
-                                {courses.map(c => {
-                                    const isReg = lmsData.registeredCourses?.includes(c.code);
-                                    return (
-                                        <div key={c.code} className={`p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl flex justify-between items-center group/item hover:border-pink-200 dark:hover:border-pink-500/30 transition-colors ${fullPage ? 'h-24' : ''}`}>
-                                            <div>
-                                                <p className={`${fullPage ? 'text-lg' : 'text-sm'} font-bold text-gray-900 dark:text-white`}>{c.code} - {c.name}</p>
-                                                <p className="text-xs text-gray-500">{c.credits} Credits</p>
+                                {loading ? (
+                                    <div className="text-center py-8 text-gray-500">Loading subjects...</div>
+                                ) : courses.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">No subjects available for your year and branch.</div>
+                                ) : (
+                                    courses.map(c => {
+                                        const isReg = registeredCourses.includes(c._id);
+                                        return (
+                                            <div key={c._id} className={`p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl flex justify-between items-center group/item hover:border-pink-200 dark:hover:border-pink-500/30 transition-colors ${fullPage ? 'h-24' : ''}`}>
+                                                <div>
+                                                    <p className={`${fullPage ? 'text-lg' : 'text-sm'} font-bold text-gray-900 dark:text-white`}>{c.code} - {c.name}</p>
+                                                    <p className="text-xs text-gray-500">{c.credits} Credits</p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    className={`px-4 py-2 ${isReg ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/30' : 'bg-pink-50 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-500/30'}`}
+                                                    disabled={isReg || registering === c._id}
+                                                    onClick={() => handleRegister(c._id)}
+                                                    isLoading={registering === c._id}
+                                                >
+                                                    {isReg ? 'Registered' : 'Register'}
+                                                </Button>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                className={`px-4 py-2 ${isReg ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/30' : 'bg-pink-50 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-500/30'}`}
-                                                disabled={isReg || registering === c.code}
-                                                onClick={() => handleRegister(c.code)}
-                                                isLoading={registering === c.code}
-                                            >
-                                                {isReg ? 'Registered' : 'Register'}
-                                            </Button>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })
+                                )}
                             </div>
                         ) : (
                             <div className="overflow-x-auto max-h-[80vh] border border-gray-200 dark:border-white/5 rounded-lg h-full">

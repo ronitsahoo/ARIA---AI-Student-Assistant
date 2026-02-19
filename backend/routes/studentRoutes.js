@@ -6,7 +6,10 @@ const {
     deleteDocument,
     submitDocuments,
     applyHostel,
-    activateLMS
+    activateLMS,
+    getSubjects,
+    registerSubject,
+    getRegisteredSubjects
 } = require('../controllers/studentController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -17,5 +20,8 @@ router.route('/document/:docId').delete(protect, deleteDocument);
 router.route('/submit-documents').post(protect, submitDocuments);
 router.route('/apply-hostel').post(protect, applyHostel);
 router.route('/activate-lms').post(protect, activateLMS);
+router.route('/subjects').get(protect, getSubjects);
+router.route('/register-subject').post(protect, registerSubject);
+router.route('/registered-subjects').get(protect, getRegisteredSubjects);
 
 module.exports = router;
