@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, Card } from '../components/UI';
-import { CheckCircle, AlertCircle, Rocket, GraduationCap, ArrowRight, Sun, Moon } from 'lucide-react';
+import { CheckCircle, AlertCircle, Rocket, GraduationCap, ArrowRight, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 
 export default function Signup() {
     const [name, setName] = useState('');
@@ -12,6 +12,7 @@ export default function Signup() {
     const [branch, setBranch] = useState('CSE');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { signup, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
 
@@ -165,14 +166,27 @@ export default function Signup() {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
-                        <Input
-                            label="Password"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">Password</label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="w-full bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-white/10 focus:border-purple-500 dark:focus:border-neon-purple focus:ring-1 focus:ring-purple-500 dark:focus:ring-neon-purple focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(p => !p)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
 
                         <button
                             type="submit"
