@@ -7,6 +7,7 @@ import Signup from './pages/Signup';
 import StudentDashboard from './pages/StudentDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminPayments from './pages/AdminPayments';
 import { DocumentUpload, FeePayment, HostelApp, LMSActivation } from './components/StudentModules';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -48,6 +49,7 @@ export default function App() {
               {/* Admin Routes */}
               <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/students" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={['admin']}><AdminPayments /></ProtectedRoute>} />
               <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><div className="text-center py-20 text-gray-400">Reports Module Coming Soon</div></ProtectedRoute>} />
             </Route>
 

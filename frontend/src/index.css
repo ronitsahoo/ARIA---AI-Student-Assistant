@@ -122,3 +122,16 @@ html.light input:-webkit-autofill:active {
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
+
+/* Hide Razorpay Test Mode Banner */
+iframe[name^="razorpay"] {
+  /* This targets the Razorpay iframe but we can't directly hide elements inside it due to cross-origin restrictions */
+}
+
+/* Alternative: Hide via global CSS if Razorpay adds classes to body */
+.razorpay-container .test-mode-banner,
+[class*="test-mode"],
+[class*="testMode"] {
+  display: none !important;
+  visibility: hidden !important;
+}

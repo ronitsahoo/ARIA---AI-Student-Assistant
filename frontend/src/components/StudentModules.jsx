@@ -305,15 +305,9 @@ export function FeePayment({ fullPage = false }) {
             <div className={`${styles.padding} flex-1 flex flex-col relative z-10`}>
                 {/* Header with Test Mode Badge */}
                 <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <h3 className={`${styles.headerSize} font-bold flex items-center gap-3 text-gray-900 dark:text-white dark:text-glow`}>
-                            <CreditCard size={styles.iconHeaderSize} className="text-purple-600 dark:text-neon-purple" /> Tuition Fee
-                        </h3>
-                        {/* Test Mode Indicator */}
-                        <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 animate-pulse">
-                            🧪 Test Mode
-                        </span>
-                    </div>
+                    <h3 className={`${styles.headerSize} font-bold flex items-center gap-3 text-gray-900 dark:text-white dark:text-glow`}>
+                        <CreditCard size={styles.iconHeaderSize} className="text-purple-600 dark:text-neon-purple" /> Tuition Fee
+                    </h3>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${isPaid ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20' : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20'}`}>
                         {isPaid ? '✓ PAID' : '⏳ PENDING'}
                     </span>
@@ -410,7 +404,7 @@ export function FeePayment({ fullPage = false }) {
                         <div className="grid grid-cols-2 gap-3">
                             <button 
                                 onClick={() => handlePay(50000)} 
-                                disabled={loading || remaining < 25000}
+                                disabled={loading || remaining < 50000}
                                 className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 dark:hover:from-purple-500 dark:hover:to-purple-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -421,7 +415,7 @@ export function FeePayment({ fullPage = false }) {
                             </button>
                             <button 
                                 onClick={() => handlePay(25000)} 
-                                disabled={loading || remaining < 25000}
+                                disabled={loading || remaining <= 0}
                                 className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-pink-500 to-pink-600 dark:from-pink-600 dark:to-pink-700 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 dark:hover:from-pink-500 dark:hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

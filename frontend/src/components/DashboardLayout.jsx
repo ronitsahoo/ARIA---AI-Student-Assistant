@@ -101,6 +101,7 @@ export default function DashboardLayout() {
                         <>
                             <SidebarLink to="/admin" icon={Home} label="Dashboard" onClick={closeSidebar} end={true} />
                             <SidebarLink to="/admin/students" icon={User} label="All Students" onClick={closeSidebar} />
+                            <SidebarLink to="/admin/payments" icon={CreditCard} label="Payments" onClick={closeSidebar} />
                             <SidebarLink to="/admin/reports" icon={AlertCircle} label="Risk Reports" onClick={closeSidebar} />
                         </>
                     )}
